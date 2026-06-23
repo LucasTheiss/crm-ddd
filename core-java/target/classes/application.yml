@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: core-crm
+    
+  # Conexão com o PostgreSQL
+  datasource:
+    # Veja que usamos "postgres" em vez de "localhost"
+    url: jdbc:postgresql://postgres:5432/crm_database
+    username: crm_admin
+    password: crm_password
+    driver-class-name: org.postgresql.Driver
+
+  # Configuração do Hibernate/JPA
+  jpa:
+    hibernate:
+      # "update" faz o Hibernate ler suas Entidades e criar as tabelas no banco sozinho
+      ddl-auto: update 
+    show-sql: true # Mostra as queries no terminal para te ajudar a debugar
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Conexão com o RabbitMQ
+  rabbitmq:
+    host: rabbitmq # Nome do serviço no docker-compose
+    port: 5672
+    username: admin
+    password: admin123

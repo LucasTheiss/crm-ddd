@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # 1. O Banco de Dados (PostgreSQL)
+  postgres:
+    image: postgres:15-alpine
+    container_name: crm_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: crm_admin
+      POSTGRES_PASSWORD: crm_password
+      POSTGRES_DB: crm_database
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - crm_network
+
+  # 2. O Message Broker (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: crm_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # Porta de comunicação das aplicações
+      - "15672:15672" # Painel visual de gerenciamento (Acesse via navegador)
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    networks:
+      - crm_network
+
+  # 3. A API do WhatsApp (Evolution API)
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: crm_evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_API_KEY=chave_secreta_para_webhook # Troque por uma senha forte
+    networks:
+      - crm_network
+
+  # 4. Seu Microsserviço .NET (Ingestion Gateway)
+  gateway-dotnet:
+    build: 
+      context: ./gateway-dotnet
+      dockerfile: Dockerfile
+    container_name: crm_gateway_dotnet
+    ports:
+      - "5000:8080"
+    depends_on:
+      - rabbitmq
+    networks:
+      - crm_network
+
+  # 5. Seu Microsserviço Java (Core CRM)
+  core-java:
+    build:
+      context: ./core-java
+      dockerfile: Dockerfile
+    container_name: crm_core_java
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - crm_network
+
+  # 6. Seu Frontend Angular
+  frontend-angular:
+    build:
+      context: ./frontend-angular
+      dockerfile: Dockerfile
+    container_name: crm_frontend_angular
+    ports:
+      - "4200:80"
+    networks:
+      - crm_network
+
+# Define um volume físico para o banco de dados não zerar quando você desligar o PC
+volumes:
+  postgres_data:
+
+# Define a rede interna que permite aos containers conversarem usando apenas o nome
+networks:
+  crm_network:
+    driver: bridge
